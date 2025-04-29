@@ -39,13 +39,13 @@ app.use(session({
 }));
 
 // Home route
-app.get('/', (req, res) => {
-  res.render('index', {
-    authenticated: req.session.authenticated,
-    username: req.session.username,
-    role: req.session.role || 'user'
-  });
-});
+res.render('index', {
+    user: req.session.authenticated ? {
+      name: req.session.username,
+      email: req.session.email,
+      role: req.session.role
+    } : null
+});  
 
 // Signup
 app.get('/signup', (req, res) => {
