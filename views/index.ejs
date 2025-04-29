@@ -1,18 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
-</head>
-<body>
-    <% if (authenticated) { %>
-        <h2>Hello, <%= username %>!</h2><br>
-        <a href="/members">Go to members page</a>
-    <% } else { %>
-        <h2>Welcome to our site!</h2><br>
-        <a href="/signup">Sign up</a><br>
-        <a href="/login">Log in</a>
-    <% } %>
-</body>
-</html>
+<%- include('templates/header', { title: 'Home', user: user }) %>
+<h1 class="display-5">Welcome<% if (user) { %>, <%= user.name %><% } %>!</h1>
+<% if (!user) { %>
+  <p><a class="btn btn-primary" href="/signup">Sign Up</a> or <a class="btn btn-secondary" href="/login">Log In</a></p>
+<% } else { %>
+  <p><a class="btn btn-primary" href="/members">Go to Members Area</a></p>
+<% } %>
+<%- include('templates/footer') %>

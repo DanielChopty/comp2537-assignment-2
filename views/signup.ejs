@@ -1,19 +1,18 @@
-<%- include('templates/header', { title: 'Sign Up', name: null, role: null }) %>
+<%- include('templates/header', { title: 'Sign Up', user: user }) %>
 <h2>Sign Up</h2>
-<% if (error) { %>
-  <div class="alert alert-danger"><%= error %></div>
-<% } %>
 <form action="/signup" method="POST">
   <div class="mb-3">
-    <label for="name" class="form-label">Name</label>
-    <input type="text" class="form-control" id="name" name="name" required />
+    <label class="form-label">Name</label>
+    <input type="text" name="name" class="form-control" required>
   </div>
   <div class="mb-3">
-    <label for="email" class="form-label">Email</label>
-    <input type="email" class="form-control" id="email" name="email" required />
+    <label class="form-label">Email</label>
+    <input type="email" name="email" class="form-control" required>
   </div>
   <div class="mb-3">
-    <label for="password" class="form-label">Password</label>
-    <input type="password" class="form-control" id="password" name="password
-::contentReference[oaicite:0]{index=0}
- 
+    <label class="form-label">Password</label>
+    <input type="password" name="password" class="form-control" required>
+  </div>
+  <button type="submit" class="btn btn-primary">Sign Up</button>
+</form>
+<%- include('templates/footer') %>
