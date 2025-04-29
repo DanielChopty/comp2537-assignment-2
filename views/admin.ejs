@@ -1,23 +1,18 @@
-<%- include('templates/header', { title: 'Admin', user: user }) %>
-<h2>Admin Page</h2>
-<p>Manage Users:</p>
-<table class="table table-striped">
-  <thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Actions</th></tr></thead>
-  <tbody>
-    <% users.forEach(u => { %>
-      <tr>
-        <td><%= u.name %></td>
-        <td><%= u.email %></td>
-        <td><%= u.type %></td>
-        <td>
-          <% if (u.type === 'user') { %>
-            <a href="/admin/promote/<%= u._id %>" class="btn btn-sm btn-success">Promote</a>
-          <% } else { %>
-            <a href="/admin/demote/<%= u._id %>" class="btn btn-sm btn-warning">Demote</a>
-          <% } %>
-        </td>
-      </tr>
+<%- include('templates/header', { title: 'Admin Dashboard' }) %>
+
+<div class="container mt-5">
+  <h2 class="mb-4">Admin Dashboard</h2>
+  <p class="text-muted">Welcome, <%= username %>. Manage users below:</p>
+
+  <% if (users && users.length > 0) { %>
+    <% users.forEach(user => { %>
+      <%- include('templates/user', { user: user, currentUserEmail: email }) %>
     <% }) %>
-  </tbody>
-</table>
+  <% } else { %>
+    <p>No users found.</p>
+  <% } %>
+
+  <a href="/logout" class="btn btn-secondary mt-3">Logout</a>
+</div>
+
 <%- include('templates/footer') %>
