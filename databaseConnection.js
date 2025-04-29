@@ -10,32 +10,14 @@ const mongodb_database_sessions = process.env.MONGODB_DATABASE_SESSIONS; // The 
 const mongodb_session_secret = process.env.MONGODB_SESSION_SECRET;  // The session secret for encrypting session data
 
 // Import the MongoClient class from the MongoDB driver
-const { MongoClient } = require('mongodb');
+const MongoClient = require("mongodb").MongoClient;
 
 // Construct the MongoDB URI using the connection details from the .env file
-const atlasURI = `mongodb+srv://${mongodb_user}:${mongodb_password}@${mongodb_host}/?retryWrites=true&w=majority`;
+// The URI follows the format `mongodb+srv://<username>:<password>@<host>/<database>?retryWrites=true&w=majority`
+const atlasURI = `mongodb+srv://${mongodb_user}:${mongodb_password}@${mongodb_host}/${mongodb_database_users}?retryWrites=true&w=majority`;
 
-// Create a new MongoClient instance
-const client = new MongoClient(atlasURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+// Create a new MongoClient instance, which is used to interact with the MongoDB database
+var database = new MongoClient(atlasURI, {});
 
-let database; // Will hold the connected database instance
-
-// Connect to MongoDB and set the `database` reference to the users database
-async function connectToDatabase() {
-  try {
-    await client.connect();
-    database = client.db(mongodb_database_users); // Set the default database for users
-    console.log("✅ Successfully connected to MongoDB.");
-  } catch (err) {
-    console.error("❌ Failed to connect to MongoDB:", err);
-    throw err;
-  }
-}
-
-// Immediately connect on module load
-connectToDatabase();
-
+// Export the `database` object so it can be used in other parts of the application to interact with MongoDB
 module.exports = { database };

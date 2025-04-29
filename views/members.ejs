@@ -1,11 +1,14 @@
-<%- include('templates/header', { title: 'Members', user: user }) %>
-<h2>Hello, <%= user.name %>!</h2>
-<p>Here are some random images:</p>
-<div class="row">
-  <% ['1.jpg', '2.jpg', '3.jpg'].forEach(img => { %>
-    <div class="col-md-4 mb-3">
-      <img src="/images/<%= img %>" class="img-fluid rounded shadow" alt="Random image">
-    </div>
-  <% }) %>
-</div>
-<%- include('templates/footer') %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Members Page</title>
+</head>
+<body>
+    <h1>Hello, <%= username %>!</h1><br>
+    <img src="<%= randomImage %>" alt="Random Image" /><br>
+    <a href="/logout">Log out</a>
+</body>
+</html>
+
