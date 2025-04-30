@@ -1,11 +1,22 @@
-<%- include('templates/header', { title: 'Members', user: user }) %>
-<h2>Hello, <%= user.name %>!</h2>
-<p>Here are some random images:</p>
-<div class="row">
-  <% ['1.jpg', '2.jpg', '3.jpg'].forEach(img => { %>
-    <div class="col-md-4 mb-3">
-      <img src="/images/<%= img %>" class="img-fluid rounded shadow" alt="Random image">
+<%- include('templates/header') %>
+
+<div class="container mt-5">
+  <h2>Welcome, <%= name %>!</h2>
+  <p class="mt-3">
+    <a href="/logout" class="btn btn-danger">Logout</a>
+  </p>
+
+  <div class="row mt-4">
+    <div class="col-md-4">
+      <img src="/images/image1.jpg" alt="Image 1" class="img-fluid rounded shadow-sm">
     </div>
-  <% }) %>
+    <div class="col-md-4">
+      <img src="/images/image2.jpg" alt="Image 2" class="img-fluid rounded shadow-sm">
+    </div>
+    <div class="col-md-4">
+      <img src="/images/image3.jpg" alt="Image 3" class="img-fluid rounded shadow-sm">
+    </div>
+  </div>
 </div>
+
 <%- include('templates/footer') %>
