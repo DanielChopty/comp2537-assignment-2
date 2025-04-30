@@ -157,7 +157,6 @@ app.get('/members', async (req, res) => {
 
   res.render('members', { name: user.name });
 });
-});
 
 // Logout route: Destroy the session and redirect to the homepage
 app.get('/logout', (req, res) => {
