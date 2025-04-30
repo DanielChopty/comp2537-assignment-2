@@ -1,3 +1,6 @@
+
+import("dotenv").then(() => {
+(async function start() {
 // Load environment variables from the .env file
 require('dotenv').config();
 
@@ -207,4 +210,7 @@ app.get('/demote/:id', isAuthenticated, isAdmin, async (req, res) => {
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
+});
+
+})();
 });
