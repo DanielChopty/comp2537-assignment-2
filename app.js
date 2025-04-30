@@ -1,216 +1,234 @@
-
-import("dotenv").then(() => {
-(async function start() {
-// Load environment variables from the .env file
 require('dotenv').config();
 
 // Import necessary dependencies
-const express = require('express');       // Express framework for building the web app
-const session = require('express-session'); // Express-session to manage user sessions
-const MongoStore = require('connect-mongo'); // MongoDB session store to persist sessions in MongoDB
-const bcrypt = require('bcrypt');        // bcrypt for password hashing
-const Joi = require('joi');              // Joi for data validation
-const { database } = require('./databaseConnection'); // MongoDB connection setup
-const saltRounds = 12;                   // Number of salt rounds for bcrypt hashing
+const express = require('express');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
+const bcrypt = require('bcrypt');
+const Joi = require('joi');
+const { ObjectId } = require('mongodb');
+const { database } = require('./databaseConnection');
 
-// Load MongoDB credentials and session settings from environment variables
-const mongodb_host = process.env.MONGODB_HOST;
-const mongodb_user = process.env.MONGODB_USER;
-const mongodb_password = process.env.MONGODB_PASSWORD;
-const mongodb_database_sessions = process.env.MONGODB_DATABASE_SESSIONS;
-const mongodb_session_secret = process.env.MONGODB_SESSION_SECRET;
-const node_session_secret = process.env.NODE_SESSION_SECRET;
+const saltRounds = 12;
 
-// Initialize the Express application
+// Load environment variables
+const {
+  MONGODB_USER,
+  MONGODB_PASSWORD,
+  MONGODB_HOST,
+  MONGODB_DATABASE_USERS,
+  MONGODB_DATABASE_SESSIONS,
+  MONGODB_SESSION_SECRET,
+  NODE_SESSION_SECRET,
+  PORT
+} = process.env;
+
 const app = express();
-const port = process.env.PORT || 3000;  // Use the port specified in the environment or default to 3000
-const expireTime = 60 * 60 * 1000;      // Set session expiration time to 1 hour (in milliseconds)
+const port = PORT || 3000;
+const expireTime = 60 * 60 * 1000; // 1 hour
 
-// Set EJS as the templating engine for views
+// Set EJS as the templating engine
 app.set('view engine', 'ejs');
 
-// Middleware to parse incoming URL-encoded data (for forms)
+// Middleware
 app.use(express.urlencoded({ extended: false }));
-
-// Middleware to serve static files like images, CSS, etc. from the 'public' directory
 app.use(express.static('public'));
 
-// Sessions database configuration using MongoDB
-var mongoStore = MongoStore.create({
-    mongoUrl: `mongodb+srv://${mongodb_user}:${mongodb_password}@${mongodb_host}/${mongodb_database_sessions}?retryWrites=true&w=majority`,
-    collectionName: 'sessions',  // Store session data in the 'sessions' collection
-    crypto: { secret: mongodb_session_secret },  // Encrypt session data with the secret
+// Session store configuration
+const mongoStore = MongoStore.create({
+  mongoUrl: `mongodb+srv://${MONGODB_USER}:${MONGODB_PASSWORD}@${MONGODB_HOST}/${MONGODB_DATABASE_SESSIONS}?retryWrites=true&w=majority`,
+  collectionName: 'sessions',
+  crypto: { secret: MONGODB_SESSION_SECRET },
 });
 
-// Use the session middleware to manage user sessions
 app.use(session({
-    secret: node_session_secret,  // Secret key to sign the session ID cookie
-    store: mongoStore,            // Use the MongoDB session store
-    saveUninitialized: false,     // Don't save uninitialized sessions
-    resave: true                  // Resave the session even if it wasn't modified
+  secret: NODE_SESSION_SECRET,
+  store: mongoStore,
+  saveUninitialized: false,
+  resave: true
 }));
 
-// Route for the home page (index)
+// Middleware to make 'title' available in all templates
+app.use((req, res, next) => {
+  res.locals.title = 'My Web App';
+  next();
+});
+
+// Routes
+
+// Home page
 app.get('/', (req, res) => {
-    if (req.session.authenticated) { // If the user is authenticated, show the logged-in view
-        res.render('index', {
-            authenticated: true,
-            username: req.session.username // Pass the username from the session
-        });
-    } else { // If the user is not authenticated, show the login view
-        res.render('index', {
-            authenticated: false,
-            username: null
-        });
-    }
+  res.render('index', {
+    title: 'Home',
+    authenticated: req.session.authenticated || false,
+    username: req.session.username || null
+  });
 });
 
-// Route to display the signup form
+// Signup page
 app.get('/signup', (req, res) => {
-    res.render('signup', { errorMessage: null });
+  res.render('signup', {
+    title: 'Sign Up',
+    errorMessage: null
+  });
 });
 
-// Signup POST route: Process the signup form submission
+// Signup handler
 app.post('/signup', async (req, res) => {
-    const { name, email, password } = req.body;
+  const { name, email, password } = req.body;
 
-    // Validate input using Joi
-    const schema = Joi.object({
-        name: Joi.string().max(50).required(),
-        email: Joi.string().email().required(),
-        password: Joi.string().min(6).required()
+  const schema = Joi.object({
+    name: Joi.string().max(50).required(),
+    email: Joi.string().email().required(),
+    password: Joi.string().min(6).required()
+  });
+
+  const validationResult = schema.validate({ name, email, password });
+  if (validationResult.error) {
+    return res.render('signup', {
+      title: 'Sign Up',
+      errorMessage: validationResult.error.details[0].message
     });
+  }
 
-    const validationResult = schema.validate({ name, email, password });
-    if (validationResult.error) { // If validation fails, show an error message
-        return res.render('signup', { errorMessage: validationResult.error.details[0].message });
-    }
+  const userCollection = database.db(MONGODB_DATABASE_USERS).collection('users');
+  const existingUser = await userCollection.findOne({ email });
+  if (existingUser) {
+    return res.render('signup', {
+      title: 'Sign Up',
+      errorMessage: 'User with that email already exists!'
+    });
+  }
 
-    // Hash the password using bcrypt before storing it in the database
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+  const hashedPassword = await bcrypt.hash(password, saltRounds);
+  await userCollection.insertOne({ name, email, password: hashedPassword });
 
-    // Check if a user already exists with the provided email
-    const userCollection = database.db(process.env.MONGODB_DATABASE).collection('users');
-    const existingUser = await userCollection.findOne({ email });
-    if (existingUser) { // If the user already exists, show an error message
-        return res.render('signup', { errorMessage: 'User with that email already exists!' });
-    }
+  req.session.authenticated = true;
+  req.session.username = name;
+  req.session.email = email;
+  req.session.cookie.maxAge = expireTime;
 
-    // Insert the new user into the 'users' collection
-    await userCollection.insertOne({ name, email, password: hashedPassword });
-
-    // Set the session to mark the user as authenticated
-    req.session.authenticated = true;
-    req.session.username = name;  // Store the username in the session
-    req.session.cookie.maxAge = expireTime; // Set the session cookie expiration
-
-    // Redirect to the members page
-    res.redirect('/members');
+  res.redirect('/members');
 });
 
-// Route to display the login form
+// Login page
 app.get('/login', (req, res) => {
-    res.render('login', { errorMessage: null });
+  res.render('login', {
+    title: 'Login',
+    errorMessage: null
+  });
 });
 
-// Login POST route: Process the login form submission
+// Login handler
 app.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
-    // Validate input using Joi
-    const schema = Joi.object({
-        email: Joi.string().email().required(),
-        password: Joi.string().required()
+  const schema = Joi.object({
+    email: Joi.string().email().required(),
+    password: Joi.string().required()
+  });
+
+  const validationResult = schema.validate({ email, password });
+  if (validationResult.error) {
+    return res.render('login', {
+      title: 'Login',
+      errorMessage: validationResult.error.details[0].message
     });
+  }
 
-    const validationResult = schema.validate({ email, password });
-    if (validationResult.error) { // If validation fails, show an error message
-        return res.render('login', { errorMessage: validationResult.error.details[0].message });
-    }
+  const userCollection = database.db(MONGODB_DATABASE_USERS).collection('users');
+  const user = await userCollection.findOne({ email });
+  if (!user) {
+    return res.render('login', {
+      title: 'Login',
+      errorMessage: 'User not found'
+    });
+  }
 
-    // Find the user by email in the database
-    const userCollection = database.db(process.env.MONGODB_DATABASE).collection('users');
-    const user = await userCollection.findOne({ email });
-    if (!user) { // If no user is found, show an error message
-        return res.render('login', { errorMessage: 'User not found' });
-    }
-
-    // Compare the provided password with the hashed password stored in the database
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (validPassword) { // If the password is valid, authenticate the user
-        req.session.authenticated = true;
-        req.session.username = user.name;  // Store the username in the session
-        req.session.cookie.maxAge = expireTime;  // Set the session cookie expiration
-        res.redirect('/members');
-    } else { // If the password is incorrect, show an error message
-        res.render('login', { errorMessage: 'Incorrect password' });
-    }
+  const validPassword = await bcrypt.compare(password, user.password);
+  if (validPassword) {
+    req.session.authenticated = true;
+    req.session.username = user.name;
+    req.session.email = user.email;
+    req.session.user = user;
+    req.session.cookie.maxAge = expireTime;
+    res.redirect('/members');
+  } else {
+    res.render('login', {
+      title: 'Login',
+      errorMessage: 'Incorrect password'
+    });
+  }
 });
 
-// Members page route: Display the logged-in user's page
+// Members page
 app.get('/members', async (req, res) => {
   if (!req.session.authenticated) {
     return res.redirect('/');
   }
 
-  const user = await usersCollection.findOne({ email: req.session.email });
+  const userCollection = database.db(MONGODB_DATABASE_USERS).collection('users');
+  const user = await userCollection.findOne({ email: req.session.email });
   if (!user) {
     return res.redirect('/');
   }
 
-  res.render('members', { name: user.name });
+  res.render('members', {
+    title: 'Members',
+    name: user.name
+  });
 });
 
-// Logout route: Destroy the session and redirect to the homepage
+// Logout
 app.get('/logout', (req, res) => {
-    req.session.destroy();  // Destroy the session
-    res.redirect('/');  // Redirect to the homepage
+  req.session.destroy();
+  res.redirect('/');
 });
-
-// 404 route: Catch-all route for undefined routes
-app.use((req, res) => {
-    res.status(404).render('404');  // Render a custom 404 page
-});
-
-// Start the server and listen on the specified port
-
 
 // Middleware to check if user is authenticated
 function isAuthenticated(req, res, next) {
-    if (req.session && req.session.user) return next();
-    res.redirect('/login');
+  if (req.session && req.session.user) return next();
+  res.redirect('/login');
 }
 
 // Middleware to check if user is admin
 function isAdmin(req, res, next) {
-    if (req.session.user && req.session.user.user_type === 'admin') return next();
-    res.status(403).render('403'); // Optional: create views/403.ejs
+  if (req.session.user && req.session.user.user_type === 'admin') return next();
+  res.status(403).render('403', { title: 'Forbidden' });
 }
 
 // Admin dashboard
 app.get('/admin', isAuthenticated, isAdmin, async (req, res) => {
-    const users = await userCollection.find().toArray();
-    res.render('admin', { users });
+  const userCollection = database.db(MONGODB_DATABASE_USERS).collection('users');
+  const users = await userCollection.find().toArray();
+  res.render('admin', {
+    title: 'Admin Dashboard',
+    users
+  });
 });
 
 // Promote user
 app.get('/promote/:id', isAuthenticated, isAdmin, async (req, res) => {
-    const userId = new ObjectId(req.params.id);
-    await userCollection.updateOne({ _id: userId }, { $set: { user_type: 'admin' } });
-    res.redirect('/admin');
+  const userId = new ObjectId(req.params.id);
+  const userCollection = database.db(MONGODB_DATABASE_USERS).collection('users');
+  await userCollection.updateOne({ _id: userId }, { $set: { user_type: 'admin' } });
+  res.redirect('/admin');
 });
 
 // Demote user
 app.get('/demote/:id', isAuthenticated, isAdmin, async (req, res) => {
-    const userId = new ObjectId(req.params.id);
-    await userCollection.updateOne({ _id: userId }, { $set: { user_type: 'user' } });
-    res.redirect('/admin');
+  const userId = new ObjectId(req.params.id);
+  const userCollection = database.db(MONGODB_DATABASE_USERS).collection('users');
+  await userCollection.updateOne({ _id: userId }, { $set: { user_type: 'user' } });
+  res.redirect('/admin');
 });
 
+// 404 handler
+app.use((req, res) => {
+  res.status(404).render('404', { title: 'Page Not Found' });
+});
 
+// Start the server
 app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-});
-
-})();
+  console.log(`Server running on port ${port}`);
 });
