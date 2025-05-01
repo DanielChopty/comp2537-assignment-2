@@ -58,19 +58,29 @@ app.use((req, res, next) => {
 
 // Home page
 app.get('/', (req, res) => {
-  res.render('index', {
-    title: 'Home',
-    authenticated: req.session.authenticated || false,
-    username: req.session.username || null
-  });
+  try {
+    res.render('index', {
+      title: 'Home',
+      authenticated: req.session.authenticated || false,
+      username: req.session.username || null
+    });
+  } catch (error) {
+    console.error('Error rendering home page:', error);
+    res.status(500).render('500', { title: 'Server Error' });
+  }
 });
 
 // Signup page
 app.get('/signup', (req, res) => {
-  res.render('signup', {
-    title: 'Sign Up',
-    errorMessage: null
-  });
+  try {
+    res.render('signup', {
+      title: 'Sign Up',
+      errorMessage: null
+    });
+  } catch (error) {
+    console.error('Error rendering signup page:', error);
+    res.status(500).render('500', { title: 'Server Error' });
+  }
 });
 
 // Signup handler
@@ -110,21 +120,26 @@ app.post('/signup', async (req, res) => {
     req.session.cookie.maxAge = expireTime;
 
     res.redirect('/members');
-  } catch (err) {
-    console.error('Signup Error:', err);
+  } catch (error) {
+    console.error('Error during signup:', error);
     res.status(500).render('signup', {
       title: 'Sign Up',
-      errorMessage: 'An unexpected error occurred during signup.'
+      errorMessage: 'An unexpected error occurred. Please try again.'
     });
   }
 });
 
 // Login page
 app.get('/login', (req, res) => {
-  res.render('login', {
-    title: 'Login',
-    errorMessage: null
-  });
+  try {
+    res.render('login', {
+      title: 'Login',
+      errorMessage: null
+    });
+  } catch (error) {
+    console.error('Error rendering login page:', error);
+    res.status(500).render('500', { title: 'Server Error' });
+  }
 });
 
 // Login handler
@@ -168,11 +183,11 @@ app.post('/login', async (req, res) => {
         errorMessage: 'Incorrect password'
       });
     }
-  } catch (err) {
-    console.error('Login Error:', err);
+  } catch (error) {
+    console.error('Error during login:', error);
     res.status(500).render('login', {
       title: 'Login',
-      errorMessage: 'An unexpected error occurred during login.'
+      errorMessage: 'An unexpected error occurred. Please try again.'
     });
   }
 });
@@ -194,23 +209,21 @@ app.get('/members', async (req, res) => {
       title: 'Members',
       name: user.name
     });
-  } catch (err) {
-    console.error('Members Page Error:', err);
-    res.status(500).render('members', {
-      title: 'Members',
-      name: null
-    });
+  } catch (error) {
+    console.error('Error rendering members page:', error);
+    res.status(500).render('500', { title: 'Server Error' });
   }
 });
 
 // Logout
 app.get('/logout', (req, res) => {
-  req.session.destroy(err => {
-    if (err) {
-      console.error('Logout Error:', err);
-    }
+  try {
+    req.session.destroy();
     res.redirect('/');
-  });
+  } catch (error) {
+    console.error('Error during logout:', error);
+    res.status(500).render('500', { title: 'Server Error' });
+  }
 });
 
 // Middleware to check if user is authenticated
@@ -234,12 +247,9 @@ app.get('/admin', isAuthenticated, isAdmin, async (req, res) => {
       title: 'Admin Dashboard',
       users
     });
-  } catch (err) {
-    console.error('Admin Dashboard Error:', err);
-    res.status(500).render('admin', {
-      title: 'Admin Dashboard',
-      users: []
-    });
+  } catch (error) {
+    console.error('Error rendering admin dashboard:', error);
+    res.status(500).render('500', { title: 'Server Error' });
   }
 });
 
@@ -250,9 +260,9 @@ app.get('/promote/:id', isAuthenticated, isAdmin, async (req, res) => {
     const userCollection = database.db(MONGODB_DATABASE_USERS).collection('users');
     await userCollection.updateOne({ _id: userId }, { $set: { user_type: 'admin' } });
     res.redirect('/admin');
-  } catch (err) {
-    console.error('Promote User Error:', err);
-    res.status(500).redirect('/admin');
+  } catch (error) {
+    console.error('Error promoting user:', error);
+    res.status(500).render('500', { title: 'Server Error' });
   }
 });
 
@@ -263,9 +273,9 @@ app.get('/demote/:id', isAuthenticated, isAdmin, async (req, res) => {
     const userCollection = database.db(MONGODB_DATABASE_USERS).collection('users');
     await userCollection.updateOne({ _id: userId }, { $set: { user_type: 'user' } });
     res.redirect('/admin');
-  } catch (err) {
-    console.error('Demote User Error:', err);
-    res.status(500).redirect('/admin');
+  } catch (error) {
+    console.error('Error demoting user:', error);
+    res.status(500).render('500', { title: 'Server Error' });
   }
 });
 
