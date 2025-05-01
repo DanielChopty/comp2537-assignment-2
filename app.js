@@ -59,11 +59,12 @@ app.use((req, res, next) => {
 // Home page
 app.get('/', (req, res) => {
   try {
-    res.render('index', {
-      title: 'Home',
-      authenticated: req.session.authenticated || false,
-      username: req.session.username || null
-    });
+        res.render('index', {
+          title: 'Home',
+          authenticated: req.session.authenticated || false,
+          username: req.session.username || null,
+          user: req.session.user || null
+        });
   } catch (error) {
     console.error('Error rendering home page:', error);
     res.status(500).render('500', { title: 'Server Error' });

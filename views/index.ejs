@@ -1,11 +1,17 @@
 <%- include('templates/header', { title: 'Home' }) %>
->
-    <% if (authenticated) { %>
-        <h2>Hello, <%= username %>!</h2><br>
-        <a href="/members">Go to members page</a>
-    <% } else { %>
-        <h2>Welcome to our site!</h2><br>
-        <a href="/signup">Sign up</a><br>
-        <a href="/login">Log in</a>
+
+<% if (authenticated) { %>
+    <h2>Hello, <%= username %>!</h2><br>
+    <a href="/members">Go to members page</a><br>
+
+    <% if (user && user.user_type === 'admin') { %>
+        <a href="/admin" class="btn btn-primary mt-3">Go to Admin Page</a>
     <% } %>
+
+<% } else { %>
+    <h2>Welcome to our site!</h2><br>
+    <a href="/signup">Sign up</a><br>
+    <a href="/login">Log in</a><br>
+<% } %>
+
 <%- include('templates/footer') %>
