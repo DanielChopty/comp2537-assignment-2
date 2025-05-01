@@ -1,6 +1,9 @@
-<%- include('templates/header', { title: 'Page Not Found' }) %>
->
-    <h1>404 - Page Not Found</h1><br>
-    <p>Oops! The page you're looking for doesn't exist.</p><br>
-    <a href="/">Go to Home</a>
+<%- include('templates/header') %>
+
+<div class="container mt-5 text-center">
+  <h1 class="display-4 text-danger">403 - Forbidden</h1>
+  <p class="lead">You are not authorized to access this page.</p>
+  <a href="/" class="btn btn-primary mt-3">Return to Home</a>
+</div>
+
 <%- include('templates/footer') %>
