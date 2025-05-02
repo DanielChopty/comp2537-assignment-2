@@ -50,7 +50,8 @@ app.use(session({
 
 // Middleware to make 'title' available in all templates
 app.use((req, res, next) => {
-  res.locals.title = 'My Web App';
+  res.locals.authenticated = req.session.authenticated || false;
+  res.locals.user = req.session.user || null;
   next();
 });
 
