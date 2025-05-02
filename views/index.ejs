@@ -2,16 +2,16 @@
 
 <% if (authenticated) { %>
     <h2>Hello, <%= username %>!</h2><br>
-    <a href="/members">Go to members page</a><br>
+    <a href="/members" class="btn btn-primary mt-3">Go to Members Page</a><br>
 
     <% if (user && user.user_type === 'admin') { %>
         <a href="/admin" class="btn btn-primary mt-3">Go to Admin Page</a>
     <% } %>
 
 <% } else { %>
-    <h2>Welcome to our site!</h2><br>
-    <a href="/signup">Sign up</a><br>
-    <a href="/login">Log in</a><br>
+<h2>Welcome to our site!</h2><br>
+    <a href="/login" class="btn btn-primary">Login</a><br>
+    <a href="/signup" class="btn btn-primary">Sign Up</a>
 <% } %>
 
 <%- include('templates/footer') %>
