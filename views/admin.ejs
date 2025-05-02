@@ -19,7 +19,7 @@
           <td>
             <% if (u._id.toString() !== user._id.toString()) { %>
               <% if (u.user_type === 'admin') { %>
-                <a href="/demote/<%= u._id %>" class="btn btn-warning btn-sm">Demote</a>
+                <a href="/demote/<%= u._id %>" class="btn btn-danger btn-sm">Demote</a>
               <% } else { %>
                 <a href="/promote/<%= u._id %>" class="btn btn-success btn-sm">Promote</a>
               <% } %>
