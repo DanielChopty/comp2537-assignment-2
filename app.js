@@ -1,15 +1,16 @@
+// Load environment variables from .env file
 require('dotenv').config();
 
 // Import necessary dependencies
 const express = require('express');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
-const bcrypt = require('bcrypt');
-const Joi = require('joi');
-const { ObjectId } = require('mongodb');
-const { database } = require('./databaseConnection');
+const MongoStore = require('connect-mongo'); // For storing sessions in MongoDB
+const bcrypt = require('bcrypt'); // For hashing passwords
+const Joi = require('joi'); // For input validation
+const { ObjectId } = require('mongodb'); // For working with MongoDB document IDs
+const { database } = require('./databaseConnection'); // Custom DB connection module
 
-const saltRounds = 12;
+const saltRounds = 12; // Number of rounds for bcrypt hashing
 
 // Load environment variables
 const {
@@ -25,22 +26,23 @@ const {
 
 const app = express();
 const port = PORT || 3000;
-const expireTime = 60 * 60 * 1000; // 1 hour
+const expireTime = 60 * 60 * 1000; // 1 hour session expiration
 
 // Set EJS as the templating engine
 app.set('view engine', 'ejs');
 
-// Middleware
+// Middleware to parse form data and serve static files
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static('public'));
 
-// Session store configuration
+// Configure session store using MongoDB
 const mongoStore = MongoStore.create({
   mongoUrl: `mongodb+srv://${MONGODB_USER}:${MONGODB_PASSWORD}@${MONGODB_HOST}/${MONGODB_DATABASE_SESSIONS}?retryWrites=true&w=majority`,
   collectionName: 'sessions',
   crypto: { secret: MONGODB_SESSION_SECRET },
 });
 
+// Configure session middleware
 app.use(session({
   secret: NODE_SESSION_SECRET,
   store: mongoStore,
@@ -48,31 +50,31 @@ app.use(session({
   resave: true
 }));
 
-// Middleware to make 'title' available in all templates
+// Custom middleware to pass session data to all views
 app.use((req, res, next) => {
   res.locals.authenticated = req.session.authenticated || false;
   res.locals.user = req.session.user || null;
   next();
 });
 
-// Routes
+/* ROUTES */
 
 // Home page
 app.get('/', (req, res) => {
   try {
-        res.render('index', {
-          title: 'Home',
-          authenticated: req.session.authenticated || false,
-          username: req.session.username || null,
-          user: req.session.user || null
-        });
+    res.render('index', {
+      title: 'Home',
+      authenticated: req.session.authenticated || false,
+      username: req.session.username || null,
+      user: req.session.user || null
+    });
   } catch (error) {
     console.error('Error rendering home page:', error);
     res.status(500).render('500', { title: 'Server Error' });
   }
 });
 
-// Signup page
+// Signup form
 app.get('/signup', (req, res) => {
   try {
     res.render('signup', {
@@ -85,11 +87,12 @@ app.get('/signup', (req, res) => {
   }
 });
 
-// Signup handler
+// Signup form submission handler
 app.post('/signup', async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
+    // Validate input using Joi
     const schema = Joi.object({
       name: Joi.string().max(50).required(),
       email: Joi.string().email().required(),
@@ -106,6 +109,8 @@ app.post('/signup', async (req, res) => {
 
     const userCollection = database.db(MONGODB_DATABASE_USERS).collection('users');
     const existingUser = await userCollection.findOne({ email });
+
+    // Check if user already exists
     if (existingUser) {
       return res.render('signup', {
         title: 'Sign Up',
@@ -113,9 +118,13 @@ app.post('/signup', async (req, res) => {
       });
     }
 
+    // Hash the password
     const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Insert new user with default role 'user'
     await userCollection.insertOne({ name, email, password: hashedPassword, user_type: 'user' });
 
+    // Set session data
     req.session.authenticated = true;
     req.session.username = name;
     req.session.email = email;
@@ -131,7 +140,7 @@ app.post('/signup', async (req, res) => {
   }
 });
 
-// Login page
+// Login form
 app.get('/login', (req, res) => {
   try {
     res.render('login', {
@@ -144,11 +153,12 @@ app.get('/login', (req, res) => {
   }
 });
 
-// Login handler
+// Login form submission handler
 app.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Validate input
     const schema = Joi.object({
       email: Joi.string().email().required(),
       password: Joi.string().required()
@@ -164,6 +174,8 @@ app.post('/login', async (req, res) => {
 
     const userCollection = database.db(MONGODB_DATABASE_USERS).collection('users');
     const user = await userCollection.findOne({ email });
+
+    // If user not found
     if (!user) {
       return res.render('login', {
         title: 'Login',
@@ -171,13 +183,16 @@ app.post('/login', async (req, res) => {
       });
     }
 
+    // Check password
     const validPassword = await bcrypt.compare(password, user.password);
     if (validPassword) {
+      // Set session info
       req.session.authenticated = true;
       req.session.username = user.name;
       req.session.email = user.email;
       req.session.user = user;
       req.session.cookie.maxAge = expireTime;
+
       res.redirect('/members');
     } else {
       res.render('login', {
@@ -194,7 +209,7 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Members page
+// Members page (protected route)
 app.get('/members', async (req, res) => {
   try {
     if (!req.session.authenticated) {
@@ -203,9 +218,8 @@ app.get('/members', async (req, res) => {
 
     const userCollection = database.db(MONGODB_DATABASE_USERS).collection('users');
     const user = await userCollection.findOne({ email: req.session.email });
-    if (!user) {
-      return res.redirect('/');
-    }
+
+    if (!user) return res.redirect('/');
 
     res.render('members', {
       title: 'Members',
@@ -217,10 +231,10 @@ app.get('/members', async (req, res) => {
   }
 });
 
-// Logout
+// Logout handler
 app.get('/logout', (req, res) => {
   try {
-    req.session.destroy();
+    req.session.destroy(); // Destroys the session
     res.redirect('/');
   } catch (error) {
     console.error('Error during logout:', error);
@@ -228,35 +242,40 @@ app.get('/logout', (req, res) => {
   }
 });
 
-// Middleware to check if user is authenticated
+/* MIDDLEWARE */
+
+// Middleware to check if a user is authenticated
 function isAuthenticated(req, res, next) {
   if (req.session && req.session.user) return next();
   res.redirect('/login');
 }
 
-// Middleware to check if user is admin
+// Middleware to check if a user is an admin
 function isAdmin(req, res, next) {
   if (req.session.user && req.session.user.user_type === 'admin') return next();
   res.status(403).render('403', { title: 'Forbidden' });
 }
 
-// Admin dashboard
+/* ADMIN ROUTES */
+
+// Admin dashboard route
 app.get('/admin', isAuthenticated, isAdmin, async (req, res) => {
   try {
     const userCollection = database.db(MONGODB_DATABASE_USERS).collection('users');
     const users = await userCollection.find().toArray();
+
     res.render('admin', {
       title: 'Admin Dashboard',
       users,
       user: req.session.user
-    });    
+    });
   } catch (error) {
     console.error('Error rendering admin dashboard:', error);
     res.status(500).render('500', { title: 'Server Error' });
   }
 });
 
-// Promote user
+// Promote user to admin
 app.get('/promote/:id', isAuthenticated, isAdmin, async (req, res) => {
   try {
     const userId = new ObjectId(req.params.id);
@@ -269,7 +288,7 @@ app.get('/promote/:id', isAuthenticated, isAdmin, async (req, res) => {
   }
 });
 
-// Demote user
+// Demote admin to regular user
 app.get('/demote/:id', isAuthenticated, isAdmin, async (req, res) => {
   try {
     const userId = new ObjectId(req.params.id);
@@ -282,10 +301,14 @@ app.get('/demote/:id', isAuthenticated, isAdmin, async (req, res) => {
   }
 });
 
-// 404 handler
+/* ERROR HANDLING */
+
+// 404 handler (catch-all route)
 app.use((req, res) => {
   res.status(404).render('404', { title: 'Page Not Found' });
 });
+
+/* SERVER */
 
 // Start the server
 app.listen(port, () => {
