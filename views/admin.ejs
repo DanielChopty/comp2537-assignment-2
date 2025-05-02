@@ -1,38 +1,37 @@
-<%- include('templates/header', { title: 'Admin' }) %>
+<%- include('templates/header') %>
 
 <div class="container mt-5">
-  <h1 class="mb-4">Admin Dashboard</h1>
-
-  <table class="table table-bordered table-hover">
-    <thead class="table-dark">
+  <h1>Admin Dashboard</h1>
+  <table class="table table-bordered mt-4">
+    <thead>
       <tr>
-        <th>Username</th>
-        <th>User Type</th>
-        <th>Action</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
       <% users.forEach(u => { %>
         <tr>
-          <td><%= u.username %></td>
+          <td><%= u.name %></td>
+          <td><%= u.email %></td>
           <td><%= u.user_type %></td>
           <td>
             <% if (u._id.toString() !== user._id.toString()) { %>
               <% if (u.user_type === 'admin') { %>
-                <a href="/demote/<%= u._id %>" class="btn btn-danger btn-sm">Demote</a>
+                <a href="/demote/<%= u._id %>" class="btn btn-warning btn-sm">Demote</a>
               <% } else { %>
                 <a href="/promote/<%= u._id %>" class="btn btn-success btn-sm">Promote</a>
               <% } %>
             <% } else { %>
-              <span class="text-muted">This is you</span>
+              <span class="text-muted">You</span>
             <% } %>
           </td>
         </tr>
-      <% }) %>
+      <% }); %>
     </tbody>
   </table>
-
-  <a href="/" class="btn btn-secondary mt-3">Back to Home</a>
 </div>
 
 <%- include('templates/footer') %>
