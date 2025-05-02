@@ -246,8 +246,9 @@ app.get('/admin', isAuthenticated, isAdmin, async (req, res) => {
     const users = await userCollection.find().toArray();
     res.render('admin', {
       title: 'Admin Dashboard',
-      users
-    });
+      users,
+      user: req.session.user
+    });    
   } catch (error) {
     console.error('Error rendering admin dashboard:', error);
     res.status(500).render('500', { title: 'Server Error' });
