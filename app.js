@@ -113,7 +113,7 @@ app.post('/signup', async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    await userCollection.insertOne({ name, email, password: hashedPassword });
+    await userCollection.insertOne({ name, email, password: hashedPassword, user_type: 'user' });
 
     req.session.authenticated = true;
     req.session.username = name;
